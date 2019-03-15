@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
+import random
 
 def get_train_data():
     try:
-        return pd.read_csv('../data/train_data.csv')
+        return pd.read_csv('../data/train_data.csv').filter(regex='^(?!Unnamed).+$')
     except FileNotFoundError:
-        return parse_team_data()
-
+        return parse_train_data()
+    
 def parse_train_data():
     team_data = get_team_data()
     games = pd.read_csv('../data/DataFiles/RegularSeasonCompactResults.csv')
@@ -19,14 +20,29 @@ def parse_train_data():
 
     merged = games.merge(team_data, how='left', left_on=['WTeamID', 'Season'], right_on=['TeamID', 'Season'])
     merged = merged.drop('TeamID', axis=1)
-    merged = merged.rename(index=str, columns=lambda x: x if x in {'Season', 'WTeamID', 'LTeamID'} else 'W' + x)
+    merged = merged.rename(index=str, columns=lambda x: x if x in {'Season', 'WTeamID', 'LTeamID'} else 'T0' + x)
 
     merged = merged.merge(team_data, how='left', left_on=['LTeamID', 'Season'], right_on=['TeamID', 'Season'])
     merged = merged.drop('TeamID', axis=1)
-    merged = merged.rename(index=str, columns=lambda x: x if x in {'Season', 'WTeamID', 'LTeamID'} or x.startswith('W') else 'L' + x)
+    merged = merged.rename(index=str, columns=lambda x: x if x in {'Season', 'WTeamID', 'LTeamID'} or x.startswith('T0') else 'T1' + x)
+
+    merged['Winner'] = 0
+    merged = merged.apply(randomize, axis=1)
+    merged[['Season', 'WTeamID', 'LTeamID', 'Winner']] = merged[['Season', 'WTeamID', 'LTeamID', 'Winner']].astype(int)
 
     merged.to_csv('../data/train_data.csv')
     return merged
+
+def randomize(row):
+    swap = random.random() > 0.5
+    print(row['Season'])
+    if swap:
+        temp = row.filter(regex='^T0.*$')
+        row[row.filter(regex='^T0.*$').index] = row.filter(regex='^T1.*$')
+        row[row.filter(regex='^T1.*$').index] = temp
+        row['Winner'] = 1
+    
+    return row
 
 def get_team_data():
     try:
@@ -84,5 +100,3 @@ def process_games(games, team_id, w_or_l):
     relevant_games = relevant_games.drop(labels='Loc', axis=1)
 
     return relevant_games
-
-get_train_data()
