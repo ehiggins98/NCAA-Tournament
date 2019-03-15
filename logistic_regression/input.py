@@ -6,11 +6,17 @@ def get_train_data():
     try:
         return pd.read_csv('../data/train_data.csv').filter(regex='^(?!Unnamed).+$')
     except FileNotFoundError:
-        return parse_train_data()
+        return parse_data('RegularSeasonCompactResults.csv', 'train_data.csv')
+
+def get_eval_data():
+    try:
+        return pd.read_csv('../data/eval_data.csv').filter(regex='^(?!Unnamed).+$')
+    except FileNotFoundError:
+        return parse_data('NCAATourneyCompactResults.csv', 'eval_data.csv')
     
-def parse_train_data():
+def parse_data(file_name, output_file_name):
     team_data = get_team_data()
-    games = pd.read_csv('../data/DataFiles/RegularSeasonCompactResults.csv')
+    games = pd.read_csv(f'../data/DataFiles/{file_name}')
     games = games.filter(items=['Season', 'WTeamID', 'LTeamID'], axis=1)
     team_data = team_data.drop('Unnamed: 0', axis=1)
     team_data['Season'] = team_data['Season'].astype(int)
@@ -30,7 +36,7 @@ def parse_train_data():
     merged = merged.apply(randomize, axis=1)
     merged[['Season', 'WTeamID', 'LTeamID', 'Winner']] = merged[['Season', 'WTeamID', 'LTeamID', 'Winner']].astype(int)
 
-    merged.to_csv('../data/train_data.csv')
+    merged.to_csv(f'../data/{output_file_name}')
     return merged
 
 def randomize(row):
