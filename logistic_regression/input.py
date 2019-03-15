@@ -2,11 +2,31 @@ import numpy as np
 import pandas as pd
 
 def get_train_data():
+    try:
+        return pd.read_csv('../data/train_data.csv')
+    except FileNotFoundError:
+        return parse_team_data()
+
+def parse_train_data():
     team_data = get_team_data()
     games = pd.read_csv('../data/DataFiles/RegularSeasonCompactResults.csv')
     games = games.filter(items=['Season', 'WTeamID', 'LTeamID'], axis=1)
-    print(team_data)
+    team_data = team_data.drop('Unnamed: 0', axis=1)
+    team_data['Season'] = team_data['Season'].astype(int)
+    team_data['TeamID'] = team_data['TeamID'].astype(int)
+    
+    games = games.loc[games['Season'] >= 2003]
+
     merged = games.merge(team_data, how='left', left_on=['WTeamID', 'Season'], right_on=['TeamID', 'Season'])
+    merged = merged.drop('TeamID', axis=1)
+    merged = merged.rename(index=str, columns=lambda x: x if x in {'Season', 'WTeamID', 'LTeamID'} else 'W' + x)
+
+    merged = merged.merge(team_data, how='left', left_on=['LTeamID', 'Season'], right_on=['TeamID', 'Season'])
+    merged = merged.drop('TeamID', axis=1)
+    merged = merged.rename(index=str, columns=lambda x: x if x in {'Season', 'WTeamID', 'LTeamID'} or x.startswith('W') else 'L' + x)
+
+    merged.to_csv('../data/train_data.csv')
+    return merged
 
 def get_team_data():
     try:
@@ -55,6 +75,7 @@ def parse_team_data():
 
             teams_data = teams_data.append(season_data.loc['Season'], ignore_index=True)
     teams_data.to_csv('../data/teams_data.csv')
+    return teams_data
 
 def process_games(games, team_id, w_or_l):
     relevant_games = games.loc[games[f'{w_or_l.upper()}TeamID'] == team_id]
