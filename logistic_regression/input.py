@@ -16,8 +16,21 @@ def get_eval_data():
     
 def parse_data(file_name, output_file_name):
     team_data = get_team_data()
+    ordinals = pd.read_csv('../data/MasseyOrdinals/MasseyOrdinals.csv')
     games = pd.read_csv(f'../data/DataFiles/{file_name}')
-    games = games.filter(items=['Season', 'WTeamID', 'LTeamID'], axis=1)
+
+    ordinals = ordinals.sort_values(by='RankingDayNum')
+    games = games.sort_values(by='DayNum')
+
+    ordinals = ordinals.loc[ordinals['SystemName'] == 'POM']
+    games = pd.merge_asof(games, ordinals, left_on='DayNum', right_on='RankingDayNum', left_by=['Season', 'WTeamID'], right_by=['Season', 'TeamID'], direction='backward')
+    games = games.rename(index=str, columns={'OrdinalRank': 'T0OrdinalRank'})
+    games = pd.merge_asof(games, ordinals, left_on='DayNum', right_on='RankingDayNum', left_by=['Season', 'LTeamID'], right_by=['Season', 'TeamID'], direction='backward')
+    games = games.rename(index=str, columns={'OrdinalRank': 'T1OrdinalRank'})
+    games = games.fillna(0)
+    games = games.drop(labels=['RankingDayNum_x', 'RankingDayNum_y', 'SystemName_x', 'SystemName_y', 'TeamID_x', 'TeamID_y'], axis=1)
+
+    games = games.filter(items=['Season', 'WTeamID', 'LTeamID', 'T0OrdinalRank', 'T1OrdinalRank'], axis=1)
     team_data = team_data.drop('Unnamed: 0', axis=1)
     team_data['Season'] = team_data['Season'].astype(int)
     team_data['TeamID'] = team_data['TeamID'].astype(int)
@@ -26,22 +39,22 @@ def parse_data(file_name, output_file_name):
 
     merged = games.merge(team_data, how='left', left_on=['WTeamID', 'Season'], right_on=['TeamID', 'Season'])
     merged = merged.drop('TeamID', axis=1)
-    merged = merged.rename(index=str, columns=lambda x: x if x in {'Season', 'WTeamID', 'LTeamID'} else 'T0' + x)
+    merged = merged.rename(index=str, columns=lambda x: x if x in {'Season', 'WTeamID', 'LTeamID'} or x.startswith('T0') or x.startswith('T1') else 'T0' + x)
 
     merged = merged.merge(team_data, how='left', left_on=['LTeamID', 'Season'], right_on=['TeamID', 'Season'])
     merged = merged.drop('TeamID', axis=1)
-    merged = merged.rename(index=str, columns=lambda x: x if x in {'Season', 'WTeamID', 'LTeamID'} or x.startswith('T0') else 'T1' + x)
+    merged = merged.rename(index=str, columns=lambda x: x if x in {'Season', 'WTeamID', 'LTeamID'} or x.startswith('T0') or x.startswith('T1') else 'T1' + x)
 
     merged['Winner'] = 0
     merged = merged.apply(randomize, axis=1)
-    merged[['Season', 'WTeamID', 'LTeamID', 'Winner']] = merged[['Season', 'WTeamID', 'LTeamID', 'Winner']].astype(int)
+    merged[['Season', 'WTeamID', 'LTeamID', 'Winner', 'T0OrdinalRank', 'T1OrdinalRank']] = merged[['Season', 'WTeamID', 'LTeamID', 'Winner', 'T0OrdinalRank', 'T1OrdinalRank']].astype(int)
 
     merged.to_csv(f'../data/{output_file_name}')
     return merged
-
+    
 def randomize(row):
     swap = random.random() > 0.5
-    print(row['Season'])
+
     if swap:
         temp = row.filter(regex='^T0.*$')
         row[row.filter(regex='^T0.*$').index] = row.filter(regex='^T1.*$')
