@@ -104,7 +104,16 @@ def parse_team_data():
                     'APG': season_data['Ast'] / num_games, # assists per game
                     'ORPG': season_data['OR'] / num_games, # offensive rebounds per game
                     'DRPG': season_data['DR'] / num_games, # defensive rebounds per game
-                    'PPG': season_data['Score'] / num_games # points per game
+                    'PPG': season_data['Score'] / num_games, # points per game
+                    'FPG_diff': season_data['PF_diff'] / num_games, # fouls per game differential
+                    'BPG_diff': season_data['Blk_diff'] / num_games, # blocks per game differential
+                    'SPG_diff': season_data['Stl_diff'] / num_games, # steals per game differential
+                    'APG_diff': season_data['Ast_diff'] / num_games, # assists per game differential
+                    'ORPG_diff': season_data['OR_diff'] / num_games, # offensive rebounds per game differential
+                    'DRPG_diff': season_data['DR_diff'] / num_games, # defensive rebounds per game differential
+                    'PPG_diff': season_data['Score_diff'] / num_games, # points per game differential
+                    'RPG': (season_data['OR'] + season_data['DR']) / num_games, # rebounds per game
+                    'RPG_diff': (season_data['OR_diff'] + season_data['DR_diff']) / num_games # rebounds per game differential
                 }
             )
 
@@ -113,9 +122,24 @@ def parse_team_data():
     return teams_data
 
 def process_games(games, team_id, w_or_l):
-    relevant_games = games.loc[games[f'{w_or_l.upper()}TeamID'] == team_id]
-    relevant_games = relevant_games.filter(regex=f'Season|^{w_or_l.upper()}.*|WLoc')
-    relevant_games = relevant_games.rename(index=str, columns=lambda x: x if x == 'Season' else x[1:])
+    relevant_games = games.loc[games[f'{w_or_l}TeamID'] == team_id]
+
+    w_or_l = w_or_l.upper()
+    for c in relevant_games.filter(regex=f'^{w_or_l}.*'):
+        if c == 'WLoc':
+            continue
+        elif w_or_l == 'W':
+            relevant_games[f'{c[1:]}_diff'] = relevant_games[f'W{c[1:]}'] - relevant_games[f'L{c[1:]}']
+        else:
+            relevant_games[f'{c[1:]}_diff'] = relevant_games[f'L{c[1:]}'] - relevant_games[f'W{c[1:]}']
+
+    relevant_games = relevant_games.filter(regex=f'Season|^{w_or_l}.*|WLoc|.*_diff$')
+    relevant_games = relevant_games.rename(index=str, columns=lambda x: x if x == 'Season' or x[-5:] == '_diff' else x[1:])
     relevant_games = relevant_games.drop(labels='Loc', axis=1)
 
     return relevant_games
+
+#parse_team_data()
+
+#parse_data('RegularSeasonCompactResults.csv', 'train_data.csv')
+#parse_data('NCAATourneyCompactResults.csv', 'eval_data.csv')
