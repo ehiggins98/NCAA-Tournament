@@ -23,3 +23,5 @@ eval_predictions <- ifelse(predict(model, eval_data) < 0.5, 0, 1)
 
 sum(train_predictions == train_data$Winner) / length(train_predictions)
 sum(eval_predictions == eval_data$Winner) / length(eval_predictions)
+
+summary(model)
