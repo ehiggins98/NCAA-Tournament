@@ -1,9 +1,13 @@
 This repository contains a few models for predicting results of NCAA tournament games. It was done as the group project for EECS 649 (Introduction to Artificial Intelligence).
 
-So far, the logistic_regression folder contains logistic models written in Python - using scikit-learn - and R. NCAA regular season data was used to train the model, and it was evaluated on NCAA tournament data (see "Data" section below).
+The polynomial_regression folder contains code for a 3rd-degree polynomial regression that predicts game scores, written in Python using scikit-learn. The logistic_regression folder contains logistic models written in Python - using scikit-learn - and R. Finally, the other_models folder contains code for a dense neural network classifier, a random forest classifier, and a k-nearest-neighbor classifier. All models were trained on NCAA regular season data and evalutated on NCAA tournament data.
 
 ## Accuracy
-The scikit-learn model achieved 73.4% accuracy on the training set (regular-season games) and 68.9% on NCAA tournament games. The R model, though, achieved 72.1% on the training set and 65.3% on the test set.
+The polynomial regression model achieved a mean absolute error of 7.83 points on the training set, and 8.20 points on the test set. That is, its predictions were on average around 4 points off from the team's true score. r-squared for this model was 0.265, and when applied to the classification task (predicting winners of games) it achieved 72.1% accuracy.
+
+The logistic regresssion model achieved 73.4% accuracy on the training set (regular-season games) and 68.9% on NCAA tournament games. The R model, though, achieved 72.1% on the training set and 65.3% on the test set.
+
+The neural network achieved 73.66% accuracy on the regular season data and 71.66% on tournament data.
 
 ## Data
 Data was taken from the [NCAA Tournament prediction competition on Kaggle](https://www.kaggle.com/c/mens-machine-learning-competition-2019) and the following columns were extracted from the box score datasets:
